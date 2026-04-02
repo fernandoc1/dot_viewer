@@ -19,10 +19,28 @@ MainWindow::MainWindow(QWidget* parent)
 {
     setWindowTitle("DOT Graph Viewer - Execution Flow Analyzer");
     resize(1200, 800);
-    
+
     setupUi();
     setupMenuBar();
     setupToolBar();
+}
+
+MainWindow::MainWindow(const QString& fileName, QWidget* parent)
+    : QMainWindow(parent)
+    , m_parser(QSharedPointer<DotParser>::create())
+    , m_model(new GraphModel(this))
+{
+    setWindowTitle("DOT Graph Viewer - Execution Flow Analyzer");
+    resize(1200, 800);
+
+    setupUi();
+    setupMenuBar();
+    setupToolBar();
+    
+    // Load file after UI is set up
+    QTimer::singleShot(100, [this, fileName]() {
+        loadFileInternal(fileName);
+    });
 }
 
 MainWindow::~MainWindow() {}
@@ -180,41 +198,45 @@ void MainWindow::setupToolBar() {
 void MainWindow::loadFile() {
     QString fileName = QFileDialog::getOpenFileName(
         this, "Open DOT File", QString(), "DOT Files (*.dot);;All Files (*)");
-    
+
     if (fileName.isEmpty()) {
         return;
     }
     
+    loadFileInternal(fileName);
+}
+
+void MainWindow::loadFileInternal(const QString& fileName) {
     m_statusLabel->setText("Loading file...");
     m_statusLabel->setStyleSheet("color: blue;");
     QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
     QApplication::processEvents();
-    
+
     // Parse in a separate step to allow UI update
     QTimer::singleShot(100, [this, fileName]() {
         bool success = m_parser->parseFile(fileName);
-        
+
         QApplication::restoreOverrideCursor();
-        
+
         if (!success) {
             QMessageBox::critical(this, "Error", "Failed to load DOT file: " + fileName);
             m_statusLabel->setText("Failed to load file");
             m_statusLabel->setStyleSheet("color: red;");
             return;
         }
-        
+
         m_model->setParser(m_parser);
         m_model->setNeighborLimit(m_neighborLimitSpin->value());
-        
+
         m_graphInfoLabel->setText(
             QString("Graph: %1 | Nodes: %2 | Edges: %3")
                 .arg(m_parser->getGraphName())
                 .arg(m_parser->getNodeCount())
                 .arg(m_parser->getEdgeCount()));
-        
+
         m_statusLabel->setText("File loaded successfully");
         m_statusLabel->setStyleSheet("color: green;");
-        
+
         // Set first node as root
         auto nodes = m_parser->getNodes();
         if (!nodes.isEmpty()) {
@@ -222,7 +244,7 @@ void MainWindow::loadFile() {
             m_model->setRootNode(firstNode);
             showNodeDetails(firstNode);
         }
-        
+
         updateStatus();
     });
 }

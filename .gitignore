@@ -25,6 +25,7 @@ CMakeLists.txt.user*
 # IDE files
 .idea/
 .vscode/
+.qwen/
 *.swp
 *.swo
 *~

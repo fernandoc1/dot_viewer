@@ -165,12 +165,12 @@ QModelIndex GraphModel::index(int row, int column, const QModelIndex& parent) co
     if (!hasIndex(row, column, parent)) {
         return QModelIndex();
     }
-    
+
     TreeItem* parentItem = getTreeItem(parent);
-    if (row < 0 || row >= parentItem->children.count()) {
+    if (!parentItem || row < 0 || row >= parentItem->children.count()) {
         return QModelIndex();
     }
-    
+
     TreeItem* childItem = parentItem->children[row];
     return createIndex(row, column, childItem);
 }
@@ -179,19 +179,26 @@ QModelIndex GraphModel::parent(const QModelIndex& child) const {
     if (!child.isValid()) {
         return QModelIndex();
     }
-    
+
     TreeItem* childItem = getTreeItem(child);
-    TreeItem* parentItem = childItem->parent;
-    
-    if (!parentItem || parentItem == m_rootItem) {
+    if (!childItem) {
         return QModelIndex();
     }
     
+    TreeItem* parentItem = childItem->parent;
+
+    if (!parentItem || parentItem == m_rootItem) {
+        return QModelIndex();
+    }
+
     return createIndex(0, 0, parentItem);
 }
 
 int GraphModel::rowCount(const QModelIndex& parent) const {
     TreeItem* parentItem = getTreeItem(parent);
+    if (!parentItem) {
+        return 0;
+    }
     return parentItem->children.count();
 }
 
@@ -204,10 +211,14 @@ QVariant GraphModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid()) {
         return QVariant();
     }
-    
+
     TreeItem* item = getTreeItem(index);
-    const QString& nodeId = item->nodeId;
+    if (!item) {
+        return QVariant();
+    }
     
+    const QString& nodeId = item->nodeId;
+
     if (role == Qt::DisplayRole) {
         if (index.column() == 0) {
             QString label = generateLabel(nodeId);
@@ -233,7 +244,7 @@ QVariant GraphModel::data(const QModelIndex& index, int role) const {
     } else if (role == Qt::UserRole) {
         return nodeId;
     }
-    
+
     return QVariant();
 }
 
@@ -252,6 +263,12 @@ Qt::ItemFlags GraphModel::flags(const QModelIndex& index) const {
     if (!index.isValid()) {
         return Qt::NoItemFlags;
     }
+    
+    TreeItem* item = getTreeItem(index);
+    if (!item) {
+        return Qt::NoItemFlags;
+    }
+    
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
@@ -260,6 +277,9 @@ QString GraphModel::nodeIdFromIndex(const QModelIndex& index) const {
         return QString();
     }
     TreeItem* item = getTreeItem(index);
+    if (!item) {
+        return QString();
+    }
     return item->nodeId;
 }
 

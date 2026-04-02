@@ -1,0 +1,74 @@
+# DOT Graph Viewer
+
+A Qt6 application for visualizing large DOT graph files, specifically designed for analyzing program execution flow graphs.
+
+## Features
+
+- **Memory-efficient parsing** - Uses memory-mapped file I/O for handling large DOT files (tested with 15,000+ nodes)
+- **Tree-based navigation** - Expand/collapse nodes to explore the graph incrementally
+- **Search functionality** - Find nodes by address, instruction, or node ID
+- **Configurable neighbor limit** - Control how many successors/predecessors to display per node
+- **Node details panel** - View full label, execution count, and connection statistics
+
+## Building
+
+```bash
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+```
+
+## Usage
+
+### Run the application
+```bash
+./build/dot_viewer
+```
+
+### Load a DOT file directly
+```bash
+./build/dot_viewer runtime_cfg.dot
+```
+
+### Interface
+
+1. **Load File** - Click "Load DOT File" or use File → Open (Ctrl+O)
+2. **Navigate** - Double-click any node to expand/collapse its neighbors
+   - **Successors** (outgoing edges) shown with →
+   - **Predecessors** (incoming edges) shown with ←
+3. **Search** - Enter address, instruction, or node ID in the search box
+4. **Neighbor Limit** - Adjust the spinner to control how many neighbors to display (default: 20)
+
+## Example
+
+The included `runtime_cfg.dot` file is a control flow graph with:
+- 15,940 nodes
+- 16,907 edges
+- Assembly instructions with execution counts
+
+## Project Structure
+
+```
+dot_viewer/
+├── CMakeLists.txt          # CMake build configuration
+├── include/
+│   ├── dotparser.h         # DOT file parser
+│   ├── graphmodel.h        # Tree model for Qt view
+│   └── mainwindow.h        # Main application window
+├── src/
+│   ├── main.cpp            # Application entry point
+│   ├── dotparser.cpp       # Parser implementation
+│   ├── graphmodel.cpp      # Tree model implementation
+│   └── mainwindow.cpp      # UI implementation
+└── runtime_cfg.dot         # Example DOT file
+```
+
+## Requirements
+
+- Qt 6.x (Core, Gui, Widgets)
+- CMake 3.16+
+- C++17 compatible compiler
+
+## License
+
+MIT License

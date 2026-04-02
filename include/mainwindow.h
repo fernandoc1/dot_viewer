@@ -21,10 +21,12 @@ class MainWindow : public QMainWindow {
 
 public:
     MainWindow(QWidget* parent = nullptr);
+    MainWindow(const QString& fileName, QWidget* parent = nullptr);
     ~MainWindow();
 
 private slots:
     void loadFile();
+    void loadFileInternal(const QString& fileName);
     void searchGraph();
     void onSearchTextChanged(const QString& text);
     void onNodeSelected(const QModelIndex& index);

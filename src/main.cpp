@@ -13,8 +13,16 @@ int main(int argc, char *argv[]) {
     // Use Fusion style for consistent look across platforms
     QApplication::setStyle(QStyleFactory::create("Fusion"));
     
-    MainWindow window;
-    window.show();
+    MainWindow* window;
+    
+    // If a file is passed as argument, load it directly
+    if (argc > 1) {
+        window = new MainWindow(QString::fromLocal8Bit(argv[1]));
+    } else {
+        window = new MainWindow();
+    }
+    
+    window->show();
     
     return app.exec();
 }
