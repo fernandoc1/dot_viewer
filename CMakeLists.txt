@@ -14,12 +14,14 @@ set(SOURCES
     src/dotparser.cpp
     src/graphmodel.cpp
     src/mainwindow.cpp
+    src/graphview.cpp
 )
 
 set(HEADERS
     include/dotparser.h
     include/graphmodel.h
     include/mainwindow.h
+    include/graphview.h
 )
 
 add_executable(dot_viewer ${SOURCES} ${HEADERS})

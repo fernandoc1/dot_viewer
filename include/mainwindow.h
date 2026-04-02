@@ -12,9 +12,11 @@
 #include <QTextEdit>
 #include <QStatusBar>
 #include <QProgressBar>
+#include <QTabWidget>
 
 #include "dotparser.h"
 #include "graphmodel.h"
+#include "graphview.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -31,7 +33,9 @@ private slots:
     void onSearchTextChanged(const QString& text);
     void onNodeSelected(const QModelIndex& index);
     void onNodeDoubleClicked(const QModelIndex& index);
+    void onGraphNodeDoubleClicked(const QString& nodeId);
     void onNeighborLimitChanged(int value);
+    void onDepthChanged(int value);
     void onSearchResultClicked(QListWidgetItem* item);
     void showNodeDetails(const QString& nodeId);
 
@@ -46,12 +50,15 @@ private:
     GraphModel* m_model;
     
     // UI elements
+    QTabWidget* m_tabWidget;
     QTreeView* m_treeView;
+    GraphView* m_graphView;
     QLineEdit* m_searchEdit;
     QListWidget* m_searchResults;
     QLabel* m_statusLabel;
     QLabel* m_graphInfoLabel;
     QSpinBox* m_neighborLimitSpin;
+    QSpinBox* m_depthSpin;
     QTextEdit* m_nodeDetails;
     QPushButton* m_searchBtn;
     

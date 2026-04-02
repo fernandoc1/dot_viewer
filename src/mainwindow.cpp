@@ -71,17 +71,27 @@ void MainWindow::setupUi() {
     m_searchBtn = new QPushButton("Search");
     connect(m_searchBtn, &QPushButton::clicked, this, &MainWindow::searchGraph);
     topBar->addWidget(m_searchBtn);
-    
+
     // Neighbor limit
-    topBar->addWidget(new QLabel("Neighbor limit:"));
+    topBar->addWidget(new QLabel("Neighbors:"));
     m_neighborLimitSpin = new QSpinBox();
     m_neighborLimitSpin->setRange(1, 1000);
     m_neighborLimitSpin->setValue(20);
     m_neighborLimitSpin->setToolTip("Maximum number of neighbors to display per node");
-    connect(m_neighborLimitSpin, QOverload<int>::of(&QSpinBox::valueChanged), 
+    connect(m_neighborLimitSpin, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &MainWindow::onNeighborLimitChanged);
     topBar->addWidget(m_neighborLimitSpin);
-    
+
+    // Tree depth limit
+    topBar->addWidget(new QLabel("Tree depth:"));
+    m_depthSpin = new QSpinBox();
+    m_depthSpin->setRange(1, 10);
+    m_depthSpin->setValue(3);
+    m_depthSpin->setToolTip("Maximum depth for tree visualization");
+    connect(m_depthSpin, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &MainWindow::onDepthChanged);
+    topBar->addWidget(m_depthSpin);
+
     topBar->addStretch();
     
     // Graph info label
@@ -90,18 +100,14 @@ void MainWindow::setupUi() {
     topBar->addWidget(m_graphInfoLabel);
     
     mainLayout->addLayout(topBar);
+
+    // Tab widget for tree and graph views
+    m_tabWidget = new QTabWidget();
     
-    // Main splitter
-    auto* splitter = new QSplitter(Qt::Horizontal);
-    
-    // Left panel: Tree view and search results
-    auto* leftPanel = new QWidget();
-    auto* leftLayout = new QVBoxLayout(leftPanel);
-    leftLayout->setContentsMargins(0, 0, 0, 0);
-    
-    // Tree view
-    auto* treeGroup = new QGroupBox("Graph Tree (double-click to expand/collapse)");
-    auto* treeLayout = new QVBoxLayout(treeGroup);
+    // Tab 1: Tree View
+    auto* treeWidget = new QWidget();
+    auto* treeLayout = new QVBoxLayout(treeWidget);
+    treeLayout->setContentsMargins(0, 0, 0, 0);
     
     m_treeView = new QTreeView();
     m_treeView->setModel(m_model);
@@ -118,47 +124,44 @@ void MainWindow::setupUi() {
     connect(m_treeView, &QTreeView::doubleClicked, this, &MainWindow::onNodeDoubleClicked);
     
     treeLayout->addWidget(m_treeView);
-    leftLayout->addWidget(treeGroup);
+    m_tabWidget->addTab(treeWidget, "Tree View");
     
-    // Search results
+    // Tab 2: Graph Visualization
+    m_graphView = new GraphView();
+    connect(m_graphView, &GraphView::nodeDoubleClicked, this, &MainWindow::onGraphNodeDoubleClicked);
+    m_tabWidget->addTab(m_graphView, "Graph Visualization");
+    
+    mainLayout->addWidget(m_tabWidget);
+
+    // Bottom panel: Search results
     auto* searchGroup = new QGroupBox("Search Results");
     auto* searchLayout = new QVBoxLayout(searchGroup);
     
     m_searchResults = new QListWidget();
     m_searchResults->setAlternatingRowColors(true);
-    connect(m_searchResults, &QListWidget::itemClicked, 
+    connect(m_searchResults, &QListWidget::itemClicked,
             this, &MainWindow::onSearchResultClicked);
     searchLayout->addWidget(m_searchResults);
-    leftLayout->addWidget(searchGroup);
-    
-    splitter->addWidget(leftPanel);
-    
-    // Right panel: Node details
-    auto* rightPanel = new QWidget();
-    auto* rightLayout = new QVBoxLayout(rightPanel);
-    rightLayout->setContentsMargins(0, 0, 0, 0);
-    
+    mainLayout->addWidget(searchGroup);
+    searchGroup->setMaximumHeight(200);
+
+    // Side panel: Node details
     auto* detailsGroup = new QGroupBox("Node Details");
     auto* detailsLayout = new QVBoxLayout(detailsGroup);
-    
+
     m_nodeDetails = new QTextEdit();
     m_nodeDetails->setReadOnly(true);
     m_nodeDetails->setFont(QFont("Courier", 10));
     m_nodeDetails->setPlaceholderText("Select a node to see details...");
     detailsLayout->addWidget(m_nodeDetails);
-    
-    rightLayout->addWidget(detailsGroup);
-    
-    splitter->addWidget(rightPanel);
-    splitter->setStretchFactor(0, 2);
-    splitter->setStretchFactor(1, 1);
-    
-    mainLayout->addWidget(splitter);
-    
+
+    mainLayout->addWidget(detailsGroup);
+    detailsGroup->setMaximumWidth(350);
+
     // Status bar
     m_statusLabel = new QLabel("Ready");
     statusBar()->addWidget(m_statusLabel);
-    
+
     updateStatus();
 }
 
@@ -227,6 +230,9 @@ void MainWindow::loadFileInternal(const QString& fileName) {
 
         m_model->setParser(m_parser);
         m_model->setNeighborLimit(m_neighborLimitSpin->value());
+        
+        m_graphView->setParser(m_parser);
+        m_graphView->setMaxDepth(m_depthSpin->value());
 
         m_graphInfoLabel->setText(
             QString("Graph: %1 | Nodes: %2 | Edges: %3")
@@ -242,6 +248,7 @@ void MainWindow::loadFileInternal(const QString& fileName) {
         if (!nodes.isEmpty()) {
             QString firstNode = nodes.firstKey();
             m_model->setRootNode(firstNode);
+            m_graphView->displayNodeAsTree(firstNode, m_depthSpin->value());
             showNodeDetails(firstNode);
         }
 
@@ -306,16 +313,24 @@ void MainWindow::onNodeDoubleClicked(const QModelIndex& index) {
     if (!index.isValid()) {
         return;
     }
-    
+
     QString nodeId = m_model->nodeIdFromIndex(index);
     if (nodeId.isEmpty()) {
         return;
     }
-    
+
     if (m_model->isExpanded(nodeId)) {
         m_model->collapseNode(nodeId);
     } else {
         m_model->expandNode(nodeId);
+    }
+}
+
+void MainWindow::onGraphNodeDoubleClicked(const QString& nodeId) {
+    // Refresh the graph visualization with the clicked node as root
+    if (m_parser && m_parser->hasNode(nodeId)) {
+        m_graphView->displayNodeAsTree(nodeId, m_depthSpin->value());
+        showNodeDetails(nodeId);
     }
 }
 
@@ -324,10 +339,27 @@ void MainWindow::onNeighborLimitChanged(int value) {
     m_statusLabel->setText(QString("Neighbor limit set to %1").arg(value));
 }
 
+void MainWindow::onDepthChanged(int value) {
+    m_graphView->setMaxDepth(value);
+    m_statusLabel->setText(QString("Tree depth set to %1").arg(value));
+    
+    // Refresh current graph view if visible
+    if (m_tabWidget->currentIndex() == 1 && m_parser) {
+        // Get the current root node from model and refresh
+        auto nodes = m_parser->getNodes();
+        if (!nodes.isEmpty()) {
+            // Find a visible node to use as root
+            QString firstNode = nodes.firstKey();
+            m_graphView->displayNodeAsTree(firstNode, value);
+        }
+    }
+}
+
 void MainWindow::onSearchResultClicked(QListWidgetItem* item) {
     QString nodeId = item->data(Qt::UserRole).toString();
     if (!nodeId.isEmpty() && m_parser && m_parser->hasNode(nodeId)) {
         m_model->setRootNode(nodeId);
+        m_graphView->displayNodeAsTree(nodeId, m_depthSpin->value());
         showNodeDetails(nodeId);
     }
 }
