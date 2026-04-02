@@ -234,38 +234,46 @@ void GraphView::displayNodeAsTree(const QString& rootNodeId, int maxDepth) {
     if (!m_parser || !m_parser->hasNode(rootNodeId)) {
         return;
     }
-    
+
     clearDisplay();
     m_maxDepth = maxDepth;
-    
+
     // Calculate scene size based on depth
     qreal sceneWidth = std::pow(2.0, maxDepth) * MIN_NODE_SPACING;
     qreal sceneHeight = (maxDepth + 1) * LEVEL_HEIGHT + 100;
-    
+
     m_scene->setSceneRect(-sceneWidth / 2, -50, sceneWidth, sceneHeight);
-    
+
     // Start layout from center top
     QSet<QString> visited;
     layoutTree(rootNodeId, 0, 0, 0, 0, 1, visited);
-    
+
     // Fit view to scene
     fitInView(m_scene->sceneRect(), Qt::KeepAspectRatio);
+    
+    // Emit display finished signal with counts
+    emit displayFinished(m_nodeItems.size(), m_edgeItems.size());
 }
 
-void GraphView::layoutTree(const QString& nodeId, qreal x, qreal y, int depth, 
+void GraphView::layoutTree(const QString& nodeId, qreal x, qreal y, int depth,
                            int siblingIndex, int siblingCount, QSet<QString>& visited) {
-    if (!m_parser || !m_parser->hasNode(nodeId) || depth > m_maxDepth) {
+    // Check node limit
+    if (m_nodeItems.size() >= m_maxNodes) {
         return;
     }
     
+    if (!m_parser || !m_parser->hasNode(nodeId) || depth > m_maxDepth) {
+        return;
+    }
+
     // Check for cycles
     if (visited.contains(nodeId)) {
         return;
     }
     visited.insert(nodeId);
-    
+
     auto node = m_parser->getNode(nodeId);
-    
+
     // Create node item
     QString displayLabel = node->label.split("\\n")[0];
     NodeItem* nodeItem = new NodeItem(nodeId, displayLabel, node->shortLabel, node->count, this);

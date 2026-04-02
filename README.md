@@ -35,13 +35,14 @@ make -j$(nproc)
 ### Interface
 
 1. **Load File** - Click "Load DOT File" or use File → Open (Ctrl+O)
+   - The entire graph is automatically displayed on load (up to 5000 nodes for performance)
 
 2. **Tree View Tab** - Text-based hierarchical view
    - Double-click any node to expand/collapse its neighbors
    - **Successors** (outgoing edges) shown with →
    - **Predecessors** (incoming edges) shown with ←
 
-3. **Graph Visualization Tab** - Visual tree display
+3. **Graph Visualization Tab** - Visual tree display (active on load)
    - Nodes displayed as rounded rectangles with address, instruction, and count
    - Edges shown as arrows (dashed red for back-edges/cycles)
    - **Double-click** a node to re-root the tree on that node
@@ -56,7 +57,8 @@ make -j$(nproc)
 
 5. **Controls**
    - **Neighbors** - Adjust how many neighbors to show in tree view (default: 20)
-   - **Tree depth** - Maximum depth for graph visualization (default: 3)
+   - **Tree depth** - Maximum depth for graph visualization (default: 10, max: 15)
+   - Status bar shows current node/edge count being displayed
 
 ## Example
 

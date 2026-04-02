@@ -69,11 +69,15 @@ public:
     void setMaxDepth(int depth) { m_maxDepth = depth; }
     int maxDepth() const { return m_maxDepth; }
     
+    void setMaxNodes(int maxNodes) { m_maxNodes = maxNodes; }
+    int maxNodes() const { return m_maxNodes; }
+    
     NodeItem* nodeItem(const QString& nodeId) const { return m_nodeItems.value(nodeId); }
 
 signals:
     void nodeClicked(const QString& nodeId);
     void nodeDoubleClicked(const QString& nodeId);
+    void displayFinished(int nodeCount, int edgeCount);
 
 protected:
     void wheelEvent(QWheelEvent* event) override;
@@ -94,6 +98,7 @@ private:
     QList<EdgeItem*> m_edgeItems;
     
     int m_maxDepth = 3;
+    int m_maxNodes = 5000;  // Limit total nodes displayed for performance
     bool m_panning = false;
     QPoint m_lastPanPoint;
     

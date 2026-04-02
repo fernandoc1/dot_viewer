@@ -85,8 +85,8 @@ void MainWindow::setupUi() {
     // Tree depth limit
     topBar->addWidget(new QLabel("Tree depth:"));
     m_depthSpin = new QSpinBox();
-    m_depthSpin->setRange(1, 10);
-    m_depthSpin->setValue(3);
+    m_depthSpin->setRange(1, 15);
+    m_depthSpin->setValue(10);
     m_depthSpin->setToolTip("Maximum depth for tree visualization");
     connect(m_depthSpin, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &MainWindow::onDepthChanged);
@@ -125,12 +125,18 @@ void MainWindow::setupUi() {
     
     treeLayout->addWidget(m_treeView);
     m_tabWidget->addTab(treeWidget, "Tree View");
-    
+
     // Tab 2: Graph Visualization
     m_graphView = new GraphView();
     connect(m_graphView, &GraphView::nodeDoubleClicked, this, &MainWindow::onGraphNodeDoubleClicked);
+    connect(m_graphView, &GraphView::displayFinished, this, [this](int nodeCount, int edgeCount) {
+        m_statusLabel->setText(QString("Displaying %1 nodes, %2 edges").arg(nodeCount).arg(edgeCount));
+    });
     m_tabWidget->addTab(m_graphView, "Graph Visualization");
     
+    // Set Graph Visualization as the first/active tab
+    m_tabWidget->setCurrentIndex(1);
+
     mainLayout->addWidget(m_tabWidget);
 
     // Bottom panel: Search results
@@ -233,6 +239,7 @@ void MainWindow::loadFileInternal(const QString& fileName) {
         
         m_graphView->setParser(m_parser);
         m_graphView->setMaxDepth(m_depthSpin->value());
+        m_graphView->setMaxNodes(5000);  // Limit for performance
 
         m_graphInfoLabel->setText(
             QString("Graph: %1 | Nodes: %2 | Edges: %3")
@@ -240,18 +247,22 @@ void MainWindow::loadFileInternal(const QString& fileName) {
                 .arg(m_parser->getNodeCount())
                 .arg(m_parser->getEdgeCount()));
 
-        m_statusLabel->setText("File loaded successfully");
-        m_statusLabel->setStyleSheet("color: green;");
+        m_statusLabel->setText("File loaded successfully - displaying graph...");
+        m_statusLabel->setStyleSheet("color: blue;");
+        QApplication::processEvents();
 
-        // Set first node as root
+        // Set first node as root and display entire graph
         auto nodes = m_parser->getNodes();
         if (!nodes.isEmpty()) {
             QString firstNode = nodes.firstKey();
             m_model->setRootNode(firstNode);
-            m_graphView->displayNodeAsTree(firstNode, m_depthSpin->value());
+            // Display entire graph (depth 10 is max, but we'll use a large value)
+            m_graphView->displayNodeAsTree(firstNode, 10);
             showNodeDetails(firstNode);
         }
 
+        m_statusLabel->setText("File loaded successfully");
+        m_statusLabel->setStyleSheet("color: green;");
         updateStatus();
     });
 }
