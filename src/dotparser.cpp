@@ -39,7 +39,9 @@ bool DotParser::parseContent(const QString& content) {
     }
     
     // Parse node definitions: n0 [label="..."];
-    QRegularExpression nodeRegex(R"(n(\d+)\s*\[label=\"([^\"]+)\"\])");
+    // Match nodes at start of line (with optional whitespace), not edge destinations
+    QRegularExpression nodeRegex(R"(^\s*n(\d+)\s*\[label=\"([^\"]+)\"\])", 
+        QRegularExpression::MultilineOption);
     QRegularExpressionMatchIterator nodeIt = nodeRegex.globalMatch(content);
     
     while (nodeIt.hasNext()) {
@@ -97,9 +99,11 @@ int DotParser::extractCount(const QString& label) const {
 
 QString DotParser::extractShortLabel(const QString& label) const {
     // Extract instruction from label (second line)
-    QStringList lines = label.split('\n');
+    // Label format: "address [file@addr]\ninstruction\ncount=N"
+    // Note: \n is stored as literal two characters in the parsed string
+    QStringList lines = label.split("\\n");
     if (lines.size() >= 2) {
-        return lines[1];  // The instruction (e.g., "sei", "clc")
+        return lines[1];  // The instruction (e.g., "sei", "clc", "cop #$00")
     }
     return label;
 }
@@ -141,20 +145,26 @@ QVector<QString> DotParser::searchNodes(const QString& pattern, int limit) const
     if (pattern.isEmpty()) {
         return result;
     }
-    
+
     QString searchPattern = pattern.toLower();
     int count = 0;
-    
+
     for (auto it = m_nodes.begin(); it != m_nodes.end() && count < limit; ++it) {
         const auto& node = it.value();
-        if (node->id.contains(searchPattern, Qt::CaseInsensitive) ||
-            node->label.contains(searchPattern, Qt::CaseInsensitive) ||
-            node->shortLabel.contains(searchPattern, Qt::CaseInsensitive)) {
+        // Search in id, full label, and short label (case-insensitive)
+        // Also create a searchable version of label with \n replaced by spaces
+        QString searchableLabel = node->label.replace("\\n", " ").toLower();
+        QString searchableShort = node->shortLabel.toLower();
+        QString searchableId = node->id.toLower();
+        
+        if (searchableId.contains(searchPattern) ||
+            searchableLabel.contains(searchPattern) ||
+            searchableShort.contains(searchPattern)) {
             result.append(node->id);
             count++;
         }
     }
-    
+
     return result;
 }
 

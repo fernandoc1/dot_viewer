@@ -147,14 +147,15 @@ QString GraphModel::generateLabel(const QString& nodeId) const {
     if (!m_parser || !m_parser->hasNode(nodeId)) {
         return nodeId;
     }
-    
+
     auto node = m_parser->getNode(nodeId);
     // Format: [Address] Instruction (count)
-    QString addr = node->label.split('\n')[0];
+    // Label uses escaped newlines (\n as two characters)
+    QString addr = node->label.split("\\n")[0];
     if (addr.contains('[')) {
         addr = addr.split('[')[0].trimmed();
     }
-    
+
     return QString("[%1] %2 (count=%3)")
         .arg(addr)
         .arg(node->shortLabel)

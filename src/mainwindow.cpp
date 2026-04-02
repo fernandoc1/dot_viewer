@@ -268,8 +268,12 @@ void MainWindow::searchGraph() {
         for (const QString& nodeId : results) {
             auto node = m_parser->getNode(nodeId);
             if (node) {
+                // Extract address from label (first part before [)
+                QString firstLine = node->label.split("\\n")[0];
+                QString addr = firstLine.split('[')[0].trimmed();
+                
                 QString display = QString("[%1] %2 (count=%3)")
-                    .arg(node->label.split('\n')[0].split('[')[0].trimmed())
+                    .arg(addr)
                     .arg(node->shortLabel)
                     .arg(node->count);
                 auto* item = new QListWidgetItem(display);
