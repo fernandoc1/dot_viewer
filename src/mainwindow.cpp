@@ -85,8 +85,8 @@ void MainWindow::setupUi() {
     // Tree depth limit
     topBar->addWidget(new QLabel("Tree depth:"));
     m_depthSpin = new QSpinBox();
-    m_depthSpin->setRange(1, 15);
-    m_depthSpin->setValue(10);
+    m_depthSpin->setRange(1, 50);
+    m_depthSpin->setValue(50);
     m_depthSpin->setToolTip("Maximum depth for tree visualization");
     connect(m_depthSpin, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &MainWindow::onDepthChanged);
@@ -239,7 +239,7 @@ void MainWindow::loadFileInternal(const QString& fileName) {
         
         m_graphView->setParser(m_parser);
         m_graphView->setMaxDepth(m_depthSpin->value());
-        m_graphView->setMaxNodes(5000);  // Limit for performance
+        m_graphView->setMaxNodes(20000);  // Show all nodes (graph has ~16K nodes)
 
         m_graphInfoLabel->setText(
             QString("Graph: %1 | Nodes: %2 | Edges: %3")
@@ -256,8 +256,8 @@ void MainWindow::loadFileInternal(const QString& fileName) {
         if (!nodes.isEmpty()) {
             QString firstNode = nodes.firstKey();
             m_model->setRootNode(firstNode);
-            // Display entire graph (depth 10 is max, but we'll use a large value)
-            m_graphView->displayNodeAsTree(firstNode, 10);
+            // Display entire graph with max depth
+            m_graphView->displayNodeAsTree(firstNode, 50);
             showNodeDetails(firstNode);
         }
 

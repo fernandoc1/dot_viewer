@@ -91,14 +91,16 @@ private:
     void addEdge(const QString& fromId, const QString& toId, bool isBackEdge);
     void layoutTree(const QString& nodeId, qreal x, qreal y, int depth, int siblingIndex, int siblingCount, QSet<QString>& visited);
     void updateNodePositions();
+    void countNodes(const QString& nodeId, int depth, QSet<QString>& visited, int& count);
     
     QSharedPointer<DotParser> m_parser;
     QGraphicsScene* m_scene;
     QMap<QString, NodeItem*> m_nodeItems;
     QList<EdgeItem*> m_edgeItems;
     
-    int m_maxDepth = 3;
-    int m_maxNodes = 5000;  // Limit total nodes displayed for performance
+    int m_maxDepth = 50;
+    int m_maxNodes = 20000;  // Limit total nodes displayed for performance
+    qreal m_currentSpacing = 200.0;
     bool m_panning = false;
     QPoint m_lastPanPoint;
     

@@ -238,14 +238,21 @@ void GraphView::displayNodeAsTree(const QString& rootNodeId, int maxDepth) {
     clearDisplay();
     m_maxDepth = maxDepth;
 
-    // Calculate scene size based on depth
-    qreal sceneWidth = std::pow(2.0, maxDepth) * MIN_NODE_SPACING;
-    qreal sceneHeight = (maxDepth + 1) * LEVEL_HEIGHT + 100;
+    // First pass: count nodes to determine optimal spacing
+    QSet<QString> tempVisited;
+    int estimatedNodes = 0;
+    countNodes(rootNodeId, 0, tempVisited, estimatedNodes);
+    
+    // Adaptive spacing based on node count
+    qreal adaptiveSpacing = qMax(50.0, qMin(200.0, 100000.0 / qMax(1, estimatedNodes)));
+    qreal sceneWidth = estimatedNodes * adaptiveSpacing * 1.5;
+    qreal sceneHeight = (maxDepth + 2) * LEVEL_HEIGHT + 100;
 
     m_scene->setSceneRect(-sceneWidth / 2, -50, sceneWidth, sceneHeight);
 
-    // Start layout from center top
+    // Second pass: layout with adaptive spacing
     QSet<QString> visited;
+    m_currentSpacing = adaptiveSpacing;
     layoutTree(rootNodeId, 0, 0, 0, 0, 1, visited);
 
     // Fit view to scene
@@ -253,6 +260,22 @@ void GraphView::displayNodeAsTree(const QString& rootNodeId, int maxDepth) {
     
     // Emit display finished signal with counts
     emit displayFinished(m_nodeItems.size(), m_edgeItems.size());
+}
+
+void GraphView::countNodes(const QString& nodeId, int depth, QSet<QString>& visited, int& count) {
+    if (count >= m_maxNodes || depth > m_maxDepth || !m_parser || !m_parser->hasNode(nodeId)) {
+        return;
+    }
+    if (visited.contains(nodeId)) {
+        return;
+    }
+    visited.insert(nodeId);
+    count++;
+    
+    auto successors = m_parser->getSuccessors(nodeId, 50);
+    for (const QString& childId : successors) {
+        countNodes(childId, depth + 1, visited, count);
+    }
 }
 
 void GraphView::layoutTree(const QString& nodeId, qreal x, qreal y, int depth,
@@ -291,19 +314,19 @@ void GraphView::layoutTree(const QString& nodeId, qreal x, qreal y, int depth,
     
     // Calculate positions for children
     int childCount = successors.size();
-    qreal totalWidth = childCount * MIN_NODE_SPACING;
-    qreal startX = x - totalWidth / 2 + MIN_NODE_SPACING / 2;
-    
+    qreal totalWidth = childCount * m_currentSpacing;
+    qreal startX = x - totalWidth / 2 + m_currentSpacing / 2;
+
     for (int i = 0; i < childCount; ++i) {
         const QString& childId = successors[i];
         bool isBackEdge = visited.contains(childId);
-        
+
         // Create child node
-        qreal childX = startX + i * MIN_NODE_SPACING;
+        qreal childX = startX + i * m_currentSpacing;
         qreal childY = y + LEVEL_HEIGHT;
-        
+
         layoutTree(childId, childX, childY, depth + 1, i, childCount, visited);
-        
+
         // Create edge
         if (m_nodeItems.contains(childId)) {
             addEdge(nodeId, childId, isBackEdge);
