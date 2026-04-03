@@ -101,45 +101,23 @@ void MainWindow::setupUi() {
     
     mainLayout->addLayout(topBar);
 
-    // Tab widget for tree and graph views
-    m_tabWidget = new QTabWidget();
+    // Main horizontal splitter: left (graph) | right (search + details)
+    auto* mainSplitter = new QSplitter(Qt::Horizontal);
     
-    // Tab 1: Tree View
-    auto* treeWidget = new QWidget();
-    auto* treeLayout = new QVBoxLayout(treeWidget);
-    treeLayout->setContentsMargins(0, 0, 0, 0);
-    
-    m_treeView = new QTreeView();
-    m_treeView->setModel(m_model);
-    m_treeView->setHeaderHidden(false);
-    m_treeView->setAlternatingRowColors(true);
-    m_treeView->setAnimated(true);
-    m_treeView->setIndentation(20);
-    m_treeView->setSortingEnabled(false);
-    m_treeView->setColumnWidth(0, 500);
-    m_treeView->setColumnWidth(1, 150);
-    m_treeView->setContextMenuPolicy(Qt::CustomContextMenu);
-    
-    connect(m_treeView, &QTreeView::clicked, this, &MainWindow::onNodeSelected);
-    connect(m_treeView, &QTreeView::doubleClicked, this, &MainWindow::onNodeDoubleClicked);
-    
-    treeLayout->addWidget(m_treeView);
-    m_tabWidget->addTab(treeWidget, "Tree View");
-
-    // Tab 2: Graph Visualization
+    // Left panel: Graph Visualization
     m_graphView = new GraphView();
     connect(m_graphView, &GraphView::nodeDoubleClicked, this, &MainWindow::onGraphNodeDoubleClicked);
     connect(m_graphView, &GraphView::displayFinished, this, [this](int nodeCount, int edgeCount) {
         m_statusLabel->setText(QString("Displaying %1 nodes, %2 edges").arg(nodeCount).arg(edgeCount));
     });
-    m_tabWidget->addTab(m_graphView, "Graph Visualization");
+    mainSplitter->addWidget(m_graphView);
     
-    // Set Graph Visualization as the first/active tab
-    m_tabWidget->setCurrentIndex(1);
-
-    mainLayout->addWidget(m_tabWidget);
-
-    // Bottom panel: Search results
+    // Right panel: Search results + Node details
+    auto* rightPanel = new QWidget();
+    auto* rightLayout = new QVBoxLayout(rightPanel);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+    
+    // Search results
     auto* searchGroup = new QGroupBox("Search Results");
     auto* searchLayout = new QVBoxLayout(searchGroup);
     
@@ -148,21 +126,25 @@ void MainWindow::setupUi() {
     connect(m_searchResults, &QListWidget::itemClicked,
             this, &MainWindow::onSearchResultClicked);
     searchLayout->addWidget(m_searchResults);
-    mainLayout->addWidget(searchGroup);
-    searchGroup->setMaximumHeight(200);
-
-    // Side panel: Node details
+    rightLayout->addWidget(searchGroup);
+    searchGroup->setMaximumHeight(250);
+    
+    // Node details
     auto* detailsGroup = new QGroupBox("Node Details");
     auto* detailsLayout = new QVBoxLayout(detailsGroup);
-
+    
     m_nodeDetails = new QTextEdit();
     m_nodeDetails->setReadOnly(true);
     m_nodeDetails->setFont(QFont("Courier", 10));
     m_nodeDetails->setPlaceholderText("Select a node to see details...");
     detailsLayout->addWidget(m_nodeDetails);
-
-    mainLayout->addWidget(detailsGroup);
-    detailsGroup->setMaximumWidth(350);
+    rightLayout->addWidget(detailsGroup);
+    
+    mainSplitter->addWidget(rightPanel);
+    mainSplitter->setStretchFactor(0, 3);
+    mainSplitter->setStretchFactor(1, 1);
+    
+    mainLayout->addWidget(mainSplitter);
 
     // Status bar
     m_statusLabel = new QLabel("Ready");
@@ -309,34 +291,6 @@ void MainWindow::onSearchTextChanged(const QString& text) {
     Q_UNUSED(text);
 }
 
-void MainWindow::onNodeSelected(const QModelIndex& index) {
-    if (!index.isValid()) {
-        return;
-    }
-    
-    QString nodeId = m_model->nodeIdFromIndex(index);
-    if (!nodeId.isEmpty()) {
-        showNodeDetails(nodeId);
-    }
-}
-
-void MainWindow::onNodeDoubleClicked(const QModelIndex& index) {
-    if (!index.isValid()) {
-        return;
-    }
-
-    QString nodeId = m_model->nodeIdFromIndex(index);
-    if (nodeId.isEmpty()) {
-        return;
-    }
-
-    if (m_model->isExpanded(nodeId)) {
-        m_model->collapseNode(nodeId);
-    } else {
-        m_model->expandNode(nodeId);
-    }
-}
-
 void MainWindow::onGraphNodeDoubleClicked(const QString& nodeId) {
     // Refresh the graph visualization with the clicked node as root
     if (m_parser && m_parser->hasNode(nodeId)) {
@@ -355,11 +309,9 @@ void MainWindow::onDepthChanged(int value) {
     m_statusLabel->setText(QString("Tree depth set to %1").arg(value));
     
     // Refresh current graph view if visible
-    if (m_tabWidget->currentIndex() == 1 && m_parser) {
-        // Get the current root node from model and refresh
+    if (m_parser) {
         auto nodes = m_parser->getNodes();
         if (!nodes.isEmpty()) {
-            // Find a visible node to use as root
             QString firstNode = nodes.firstKey();
             m_graphView->displayNodeAsTree(firstNode, value);
         }

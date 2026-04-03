@@ -12,7 +12,6 @@
 #include <QTextEdit>
 #include <QStatusBar>
 #include <QProgressBar>
-#include <QTabWidget>
 
 #include "dotparser.h"
 #include "graphmodel.h"
@@ -31,8 +30,6 @@ private slots:
     void loadFileInternal(const QString& fileName);
     void searchGraph();
     void onSearchTextChanged(const QString& text);
-    void onNodeSelected(const QModelIndex& index);
-    void onNodeDoubleClicked(const QModelIndex& index);
     void onGraphNodeDoubleClicked(const QString& nodeId);
     void onNeighborLimitChanged(int value);
     void onDepthChanged(int value);
@@ -50,8 +47,6 @@ private:
     GraphModel* m_model;
     
     // UI elements
-    QTabWidget* m_tabWidget;
-    QTreeView* m_treeView;
     GraphView* m_graphView;
     QLineEdit* m_searchEdit;
     QListWidget* m_searchResults;
